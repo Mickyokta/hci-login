@@ -94,7 +94,10 @@ export function LoginForm({ defaultEmail = "", next }: { defaultEmail?: string; 
         required
         error={errorFor("password")}
         aside={
-          <Link href="/bantuan#lupa-password" className="rounded text-sm font-medium text-primary hover:underline">
+          <Link
+            href={`/lupa-password${values.email ? `?email=${encodeURIComponent(values.email.trim())}` : ""}`}
+            className="rounded text-sm font-medium text-primary hover:underline"
+          >
             Lupa password?
           </Link>
         }

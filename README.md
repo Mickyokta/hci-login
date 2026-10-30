@@ -6,11 +6,12 @@ Penjelasan tiap heuristic dan letaknya di kode ada di [HEURISTICS.md](HEURISTICS
 
 ## Fitur
 
-- **Registrasi** (`/register`): nama, email, password, dan konfirmasi password. Data divalidasi di browser dan di server, lalu disimpan ke tabel `users`. Password disimpan sebagai hash bcrypt.
+- **Registrasi** (`/register`): nama, email, password, konfirmasi password, serta pertanyaan keamanan dan jawabannya. Data divalidasi di browser dan di server, lalu disimpan ke tabel `users`. Password disimpan sebagai hash bcrypt.
 - **Login** (`/login`): ditolak jika email atau password salah. Ada opsi "Ingat saya" (30 hari), tombol tampilkan/sembunyikan password, dan peringatan Caps Lock.
 - **Dashboard** (`/dashboard`, hanya untuk user yang sudah login): daftar semua user dari database, dengan pencarian.
 - **Logout**: tombol "Keluar" menghapus cookie sesi.
-- **Bantuan** (`/bantuan`): FAQ, termasuk "Lupa password?".
+- **Lupa password** (`/lupa-password`): user memasukkan email, menjawab pertanyaan keamanan yang dipilih saat registrasi, lalu membuat password baru. Jawaban disimpan sebagai hash bcrypt dan tidak membedakan huruf besar/kecil.
+- **Bantuan** (`/bantuan`): FAQ.
 - **Landing page** (`/`).
 
 ## Tech stack
@@ -34,6 +35,7 @@ src/proxy.ts                  Proteksi /dashboard, redirect user yang sudah logi
 src/app/actions/auth.ts       Server Actions: registerAction, loginAction, logoutAction
 src/app/(auth)/login/         Halaman dan form login
 src/app/(auth)/register/      Halaman dan form registrasi
+src/app/(auth)/lupa-password/ Halaman dan form lupa password (2 langkah)
 src/app/dashboard/            Daftar user
 src/app/bantuan/              Halaman bantuan / FAQ
 src/lib/validation.ts         Skema Zod dan aturan password
@@ -101,7 +103,7 @@ Ada tiga cara untuk membuktikan data user benar-benar tersimpan:
 
 - **Neon Console**: buka project, pilih **Tables** untuk melihat tabel `users`, atau buka **SQL Editor** dan jalankan:
   ```sql
-  SELECT id, name, email, password_hash, created_at FROM users ORDER BY created_at DESC;
+  SELECT id, name, email, password_hash, security_question, security_answer_hash, created_at FROM users ORDER BY created_at DESC;
   ```
 - **DBeaver / pgAdmin**: buat koneksi baru dengan tipe **PostgreSQL**:
   - Host: bagian host dari `DIRECT_URL` (contoh `ep-xxxx.ap-southeast-1.aws.neon.tech`)
@@ -113,7 +115,7 @@ Ada tiga cara untuk membuktikan data user benar-benar tersimpan:
   Lalu buka `neondb → Schemas → public → Tables → users`.
 - **Prisma Studio**: jalankan `npm run db:studio`.
 
-Kolom `password_hash` berisi hash bcrypt (diawali `$2b$12$...`), bukan password asli.
+Kolom `password_hash` dan `security_answer_hash` berisi hash bcrypt (diawali `$2b$12$...`), bukan teks aslinya. Kolom `security_question` berisi id pertanyaan (misalnya `city`); teks pertanyaannya ada di `src/lib/validation.ts`.
 
 ## Script npm
 

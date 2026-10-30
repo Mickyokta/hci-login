@@ -15,27 +15,24 @@ const FAQ = [
     q: "Saya lupa password. Apa yang harus dilakukan?",
     a: (
       <>
-        <p>
-          Demi keamanan, password disimpan dalam bentuk terenkripsi (hash) sehingga tidak bisa
-          dilihat siapa pun, termasuk admin. Untuk memulihkan akun:
-        </p>
-        <ol className="mt-2 list-decimal space-y-1 pl-5">
-          <li>Coba lagi dengan memastikan Caps Lock tidak aktif dan ejaan email sudah benar.</li>
+        <ol className="list-decimal space-y-1 pl-5">
           <li>
-            Hubungi admin di{" "}
-            <a href={`mailto:${ADMIN_EMAIL}`} className="text-primary hover:underline">
-              {ADMIN_EMAIL}
-            </a>{" "}
-            dari email yang terdaftar untuk meminta reset password.
-          </li>
-          <li>
-            Atau{" "}
-            <Link href="/register" className="text-primary hover:underline">
-              daftar akun baru
+            Buka halaman{" "}
+            <Link href="/lupa-password" className="text-primary hover:underline">
+              Lupa password
             </Link>{" "}
-            dengan email lain.
+            dan masukkan email Anda.
           </li>
+          <li>Jawab pertanyaan keamanan yang Anda pilih saat mendaftar.</li>
+          <li>Buat password baru, lalu masuk seperti biasa.</li>
         </ol>
+        <p className="mt-2">
+          Lupa juga jawabannya, atau akun Anda dibuat sebelum fitur ini ada? Hubungi admin di{" "}
+          <a href={`mailto:${ADMIN_EMAIL}`} className="text-primary hover:underline">
+            {ADMIN_EMAIL}
+          </a>{" "}
+          dari email yang terdaftar.
+        </p>
       </>
     ),
   },

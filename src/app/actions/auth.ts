@@ -8,9 +8,14 @@ import {
   type FieldErrors,
   getFieldErrors,
   type LoginValues,
+  forgotEmailSchema,
   loginSchema,
+  normalizeAnswer,
+  questionLabel,
   type RegisterValues,
   registerSchema,
+  type ResetPasswordValues,
+  resetPasswordSchema,
   safeNextPath,
 } from "@/lib/validation";
 
@@ -41,6 +46,8 @@ export async function registerAction(
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
+    securityQuestion: formData.get("securityQuestion"),
+    securityAnswer: formData.get("securityAnswer"),
   };
 
   const parsed = registerSchema.safeParse(values);
@@ -52,7 +59,7 @@ export async function registerAction(
     };
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, securityQuestion, securityAnswer } = parsed.data;
 
   try {
     const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
@@ -66,7 +73,13 @@ export async function registerAction(
     }
 
     await db.user.create({
-      data: { name, email, passwordHash: await hash(password, 12) },
+      data: {
+        name,
+        email,
+        passwordHash: await hash(password, 12),
+        securityQuestion,
+        securityAnswerHash: await hash(normalizeAnswer(securityAnswer), 12),
+      },
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -124,6 +137,114 @@ export async function loginAction(
   }
 
   redirect(next);
+}
+
+export type ResetState = FormState<ResetPasswordValues> & {
+  step: "email" | "answer";
+  email?: string;
+  question?: string;
+};
+
+/** Lupa password, langkah 1: cari akun dari email lalu tampilkan pertanyaannya. */
+export async function findAccountAction(
+  _prev: ResetState,
+  formData: FormData,
+): Promise<ResetState> {
+  const values = { email: formData.get("email") };
+  const parsed = forgotEmailSchema.safeParse(values);
+  if (!parsed.success) {
+    return { status: "error", step: "email", fieldErrors: getFieldErrors(forgotEmailSchema, values) };
+  }
+
+  const { email } = parsed.data;
+
+  try {
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { securityQuestion: true },
+    });
+    if (!user) {
+      return {
+        status: "error",
+        step: "email",
+        fieldErrors: {
+          email: "Email ini belum terdaftar. Periksa ejaannya, atau daftar akun baru.",
+        },
+      };
+    }
+
+    const question = questionLabel(user.securityQuestion);
+    if (!question) {
+      return {
+        status: "error",
+        step: "email",
+        message:
+          "Akun ini dibuat sebelum fitur pertanyaan keamanan tersedia, jadi belum bisa dipulihkan otomatis. Silakan hubungi admin melalui halaman Bantuan.",
+      };
+    }
+
+    return { status: "idle", step: "answer", email, question };
+  } catch (error) {
+    console.error("findAccountAction", error);
+    return { status: "error", step: "email", message: SERVER_ERROR };
+  }
+}
+
+/** Lupa password, langkah 2: cocokkan jawaban lalu simpan password baru. */
+export async function resetPasswordAction(
+  prev: ResetState,
+  formData: FormData,
+): Promise<ResetState> {
+  const values = {
+    email: formData.get("email"),
+    securityAnswer: formData.get("securityAnswer"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  };
+  const current = { step: "answer" as const, email: prev.email, question: prev.question };
+
+  const parsed = resetPasswordSchema.safeParse(values);
+  if (!parsed.success) {
+    return {
+      ...current,
+      status: "error",
+      fieldErrors: getFieldErrors(resetPasswordSchema, values),
+    };
+  }
+
+  const { email, securityAnswer, password } = parsed.data;
+
+  try {
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { id: true, securityAnswerHash: true },
+    });
+    if (!user?.securityAnswerHash) {
+      return { status: "error", step: "email", message: "Akun tidak ditemukan. Silakan ulangi dari awal." };
+    }
+
+    const answerOk = await compare(normalizeAnswer(securityAnswer), user.securityAnswerHash);
+    if (!answerOk) {
+      return {
+        ...current,
+        status: "error",
+        fieldErrors: {
+          securityAnswer:
+            "Jawaban tidak cocok. Periksa ejaannya (huruf besar/kecil tidak berpengaruh).",
+        },
+      };
+    }
+
+    await db.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await hash(password, 12) },
+    });
+  } catch (error) {
+    console.error("resetPasswordAction", error);
+    return { ...current, status: "error", message: SERVER_ERROR };
+  }
+
+  redirect(`/login?reset=1&email=${encodeURIComponent(email)}`);
 }
 
 export async function logoutAction() {

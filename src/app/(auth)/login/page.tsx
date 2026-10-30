@@ -32,6 +32,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             Akun Anda sudah tersimpan. Silakan masuk dengan password yang baru dibuat.
           </Alert>
         )}
+        {get("reset") && (
+          <Alert variant="success" title="Password berhasil diubah" dismissible>
+            Silakan masuk dengan password baru Anda.
+          </Alert>
+        )}
         {get("logout") && (
           <Alert variant="info" title="Anda telah keluar" dismissible>
             Sampai jumpa lagi. Masuk kembali kapan saja.

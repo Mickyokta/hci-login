@@ -113,6 +113,7 @@ Selain teksnya:
 
 - **Tooltip "?"** di samping label Password (aturan password) dan "Ingat saya" (penjelasan fungsinya, termasuk saran tidak mencentangnya di komputer umum) (`src/components/ui/tooltip.tsx`).
 - **Teks petunjuk** di bawah kolom email dan konfirmasi password.
-- Link **"Lupa password?"** dan **"Butuh bantuan?"** menuju halaman **Pusat bantuan** (`/bantuan`). Halaman itu berisi FAQ tentang lupa password, syarat password, arti pesan login gagal, fungsi "Ingat saya", dan lokasi penyimpanan data.
+- Link **"Lupa password?"** membuka halaman pemulihan akun (`/lupa-password`) yang memandu user dalam 2 langkah, dengan keterangan "Langkah 1 dari 2" dan "Langkah 2 dari 2". Email yang sudah diketik di form login ikut terbawa.
+- Link **"Butuh bantuan?"** menuju halaman **Pusat bantuan** (`/bantuan`). Halaman itu berisi FAQ tentang cara memulihkan akun, syarat password, arti pesan login gagal, fungsi "Ingat saya", dan lokasi penyimpanan data.
 
-*Catatan relevansi:* aplikasi ini sederhana dan sebagian besar sudah bisa dipahami tanpa dokumentasi. Karena itu bantuan dibuat singkat dan kontekstual (tooltip dan petunjuk di samping kolom), bukan manual panjang. Fitur reset password lewat email tidak dibuat karena membutuhkan layanan pengiriman email. Sebagai gantinya, link "Lupa password?" membuka panduan langkah pemulihan akun di halaman Bantuan.
+*Catatan relevansi:* aplikasi ini sederhana dan sebagian besar sudah bisa dipahami tanpa dokumentasi. Karena itu bantuan dibuat singkat dan kontekstual (tooltip dan petunjuk di samping kolom), bukan manual panjang. Reset password lewat email tidak dibuat karena membutuhkan layanan pengiriman email. Sebagai gantinya dipakai pertanyaan keamanan yang dipilih saat registrasi.

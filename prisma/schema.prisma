@@ -14,5 +14,9 @@ model User {
   passwordHash String   @map("password_hash")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  // Untuk fitur lupa password. Nullable agar akun lama tetap valid.
+  securityQuestion   String? @map("security_question")
+  securityAnswerHash String? @map("security_answer_hash")
+
   @@map("users")
 }

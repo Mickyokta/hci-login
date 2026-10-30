@@ -5,6 +5,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type Ref,
+  type SelectHTMLAttributes,
   useState,
 } from "react";
 import { AlertIcon, EyeIcon, EyeOffIcon } from "@/components/icons";
@@ -90,6 +91,24 @@ export function Input({
       id={id}
       aria-invalid={invalid || undefined}
       aria-describedby={describedBy || undefined}
+      className={`${inputClass(invalid)} ${className}`}
+      {...props}
+    />
+  );
+}
+
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+  id: string;
+  invalid?: boolean;
+  hasHint?: boolean;
+};
+
+export function Select({ id, invalid, hasHint, className = "", ...props }: SelectProps) {
+  return (
+    <select
+      id={id}
+      aria-invalid={invalid || undefined}
+      aria-describedby={invalid ? errorId(id) : hasHint ? hintId(id) : undefined}
       className={`${inputClass(invalid)} ${className}`}
       {...props}
     />

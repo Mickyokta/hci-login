@@ -3,21 +3,29 @@
 import Link from "next/link";
 import { type FormEvent, startTransition, useActionState, useState } from "react";
 import { type FormState, registerAction } from "@/app/actions/auth";
-import { CheckIcon, CircleIcon } from "@/components/icons";
+import { CheckIcon } from "@/components/icons";
+import { PasswordChecklist } from "@/components/password-checklist";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, focusField, Input, PasswordInput } from "@/components/ui/field";
+import { Field, focusField, Input, PasswordInput, Select } from "@/components/ui/field";
 import { Tooltip } from "@/components/ui/tooltip";
 import {
   type FieldErrors,
   getFieldErrors,
-  PASSWORD_RULES,
   type RegisterValues,
   registerSchema,
+  SECURITY_QUESTIONS,
 } from "@/lib/validation";
 
 type Fields = keyof RegisterValues;
-const FIELD_ORDER: Fields[] = ["name", "email", "password", "confirmPassword"];
+const FIELD_ORDER: Fields[] = [
+  "name",
+  "email",
+  "password",
+  "confirmPassword",
+  "securityQuestion",
+  "securityAnswer",
+];
 const initialState: FormState<RegisterValues> = { status: "idle" };
 
 export function RegisterForm() {
@@ -26,6 +34,8 @@ export function RegisterForm() {
     email: "",
     password: "",
     confirmPassword: "",
+    securityQuestion: "",
+    securityAnswer: "",
   });
   const [touched, setTouched] = useState<Partial<Record<Fields, boolean>>>({});
   const [serverErrors, setServerErrors] = useState<FieldErrors<RegisterValues>>({});
@@ -60,7 +70,7 @@ export function RegisterForm() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setTouched({ name: true, email: true, password: true, confirmPassword: true });
+    setTouched(Object.fromEntries(FIELD_ORDER.map((field) => [field, true])));
     const firstInvalid = FIELD_ORDER.find((field) => clientErrors[field]);
     if (firstInvalid) {
       focusField(firstInvalid);
@@ -161,21 +171,7 @@ export function RegisterForm() {
           maxLength={72}
           required
         />
-        <ul id="password-rules" className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs" aria-label="Syarat password">
-          {PASSWORD_RULES.map((rule) => {
-            const ok = rule.test(values.password);
-            return (
-              <li
-                key={rule.id}
-                className={`flex items-center gap-1.5 ${ok ? "text-success" : "text-muted"}`}
-              >
-                {ok ? <CheckIcon width={14} height={14} /> : <CircleIcon width={14} height={14} />}
-                {rule.label}
-                <span className="sr-only">{ok ? "(terpenuhi)" : "(belum terpenuhi)"}</span>
-              </li>
-            );
-          })}
-        </ul>
+        <PasswordChecklist id="password-rules" password={values.password} />
       </Field>
 
       <Field
@@ -204,6 +200,56 @@ export function RegisterForm() {
           invalid={!!errorFor("confirmPassword")}
           hasHint
           maxLength={72}
+          required
+        />
+      </Field>
+
+      <Field
+        id="securityQuestion"
+        label="Pertanyaan keamanan"
+        required
+        error={errorFor("securityQuestion")}
+        hint="Dipakai untuk memulihkan akun jika Anda lupa password."
+      >
+        <Select
+          id="securityQuestion"
+          name="securityQuestion"
+          value={values.securityQuestion}
+          onChange={(e) => update("securityQuestion", e.target.value)}
+          onBlur={touch("securityQuestion")}
+          invalid={!!errorFor("securityQuestion")}
+          hasHint
+          required
+        >
+          <option value="" disabled>
+            Pilih salah satu pertanyaan
+          </option>
+          {SECURITY_QUESTIONS.map((q) => (
+            <option key={q.id} value={q.id}>
+              {q.label}
+            </option>
+          ))}
+        </Select>
+      </Field>
+
+      <Field
+        id="securityAnswer"
+        label="Jawaban"
+        required
+        error={errorFor("securityAnswer")}
+        hint="Pilih jawaban yang mudah Anda ingat. Huruf besar/kecil tidak berpengaruh."
+      >
+        <Input
+          id="securityAnswer"
+          name="securityAnswer"
+          autoComplete="off"
+          placeholder="Ketik jawaban Anda"
+          value={values.securityAnswer}
+          onChange={(e) => update("securityAnswer", e.target.value)}
+          onBlur={touch("securityAnswer")}
+          invalid={!!errorFor("securityAnswer")}
+          hasHint
+          maxLength={100}
           required
         />
       </Field>

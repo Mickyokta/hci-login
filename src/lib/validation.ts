@@ -23,12 +23,55 @@ export const PASSWORD_RULES = [
   },
 ] as const;
 
+// Pertanyaan keamanan untuk fitur lupa password. Yang disimpan di database
+// adalah id-nya, sehingga teks pertanyaan bisa diubah tanpa migrasi.
+export const SECURITY_QUESTIONS = [
+  { id: "pet", label: "Siapa nama hewan peliharaan pertama Anda?" },
+  { id: "city", label: "Di kota mana Anda lahir?" },
+  { id: "school", label: "Apa nama SD tempat Anda bersekolah?" },
+  { id: "mother", label: "Siapa nama gadis ibu kandung Anda?" },
+  { id: "food", label: "Apa makanan favorit Anda saat kecil?" },
+] as const;
+
+const QUESTION_IDS: string[] = SECURITY_QUESTIONS.map((q) => q.id);
+
+export const questionLabel = (id: string | null | undefined) =>
+  SECURITY_QUESTIONS.find((q) => q.id === id)?.label;
+
+/** Jawaban disamakan dulu agar "Jakarta", " jakarta " dan "JAKARTA" dianggap sama. */
+export const normalizeAnswer = (answer: string) =>
+  answer.trim().toLowerCase().replace(/\s+/g, " ");
+
 const emailField = z
   .string()
   .trim()
   .toLowerCase()
   .min(1, "Email wajib diisi.")
   .pipe(z.email("Format email belum benar. Contoh: nama@email.com"));
+
+const passwordField = z
+  .string()
+  .min(1, "Password wajib diisi.")
+  .max(72, "Password maksimal 72 karakter.")
+  .superRefine((value, ctx) => {
+    const failed = PASSWORD_RULES.find((rule) => !rule.test(value));
+    if (value && failed) ctx.addIssue({ code: "custom", message: failed.message });
+  });
+
+const answerField = z
+  .string()
+  .trim()
+  .min(1, "Jawaban wajib diisi.")
+  .max(100, "Jawaban maksimal 100 karakter.");
+
+const passwordsMatch = {
+  check: (data: { password: string; confirmPassword: string }) =>
+    !data.confirmPassword || data.password === data.confirmPassword,
+  params: {
+    path: ["confirmPassword"],
+    message: "Konfirmasi password tidak sama. Ketik ulang password yang sama.",
+  },
+};
 
 export const registerSchema = z
   .object({
@@ -39,28 +82,35 @@ export const registerSchema = z
       .min(2, "Nama minimal 2 karakter.")
       .max(50, "Nama maksimal 50 karakter."),
     email: emailField,
-    password: z
-      .string()
-      .min(1, "Password wajib diisi.")
-      .max(72, "Password maksimal 72 karakter.")
-      .superRefine((value, ctx) => {
-        const failed = PASSWORD_RULES.find((rule) => !rule.test(value));
-        if (value && failed) ctx.addIssue({ code: "custom", message: failed.message });
-      }),
+    password: passwordField,
     confirmPassword: z.string().min(1, "Ulangi password Anda."),
+    // Bukan z.enum: kegagalan enum menghentikan .refine() di bawah (cek konfirmasi password).
+    securityQuestion: z
+      .string()
+      .refine((id) => QUESTION_IDS.includes(id), "Pilih salah satu pertanyaan keamanan."),
+    securityAnswer: answerField,
   })
-  .refine((data) => !data.confirmPassword || data.password === data.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Konfirmasi password tidak sama. Ketik ulang password yang sama.",
-  });
+  .refine(passwordsMatch.check, passwordsMatch.params);
 
 export const loginSchema = z.object({
   email: emailField,
   password: z.string().min(1, "Password wajib diisi."),
 });
 
+export const forgotEmailSchema = z.object({ email: emailField });
+
+export const resetPasswordSchema = z
+  .object({
+    email: emailField,
+    securityAnswer: answerField,
+    password: passwordField,
+    confirmPassword: z.string().min(1, "Ulangi password baru Anda."),
+  })
+  .refine(passwordsMatch.check, passwordsMatch.params);
+
 export type RegisterValues = z.input<typeof registerSchema>;
 export type LoginValues = z.input<typeof loginSchema>;
+export type ResetPasswordValues = z.input<typeof resetPasswordSchema>;
 
 export type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
