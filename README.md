@@ -53,7 +53,7 @@ Butuh Node.js 20.9 atau lebih baru.
    npm install
    ```
 2. Salin `.env.example` menjadi `.env`, lalu isi:
-   - `DATABASE_URL` dan `DIRECT_URL`: connection string dari Neon (lihat bagian Deploy, langkah 1). Untuk Postgres lokal, isi keduanya dengan URL yang sama, misalnya `postgresql://postgres:postgres@localhost:5432/hci_login` (bisa dijalankan dengan `docker compose up -d`).
+   - `DATABASE_URL` dan `DATABASE_URL_UNPOOLED`: connection string dari Neon. Cara termudah: `neon env pull` (project ini sudah di-link lewat `neon init`, lihat file `neon.ts`). Untuk Postgres lokal, isi keduanya dengan URL yang sama, misalnya `postgresql://postgres:postgres@localhost:5432/hci_login` (bisa dijalankan dengan `docker compose up -d`).
    - `SESSION_SECRET`: string acak minimal 32 karakter. Buat dengan `openssl rand -base64 32` atau `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
 3. Buat tabel di database:
    ```bash
@@ -72,7 +72,7 @@ Butuh Node.js 20.9 atau lebih baru.
 1. Daftar di https://neon.tech, lalu klik **New Project**. Pilih region terdekat (misalnya *AWS Asia Pacific (Singapore)*).
 2. Di dashboard project, klik **Connect**. Salin dua connection string:
    - **Pooled connection** (host mengandung `-pooler`): isi ke `DATABASE_URL`.
-   - **Direct connection** (matikan toggle *Connection pooling*): isi ke `DIRECT_URL`.
+   - **Direct connection** (matikan toggle *Connection pooling*): isi ke `DATABASE_URL_UNPOOLED`.
 3. Isi keduanya di `.env` lokal, lalu jalankan `npm run db:deploy` untuk membuat tabel `users` di Neon. (Langkah ini juga dijalankan otomatis setiap kali Vercel build.)
 
 ### 2. Push ke GitHub
@@ -91,11 +91,11 @@ git push origin main
    | Name | Value |
    |---|---|
    | `DATABASE_URL` | connection string *pooled* dari Neon |
-   | `DIRECT_URL` | connection string *direct* dari Neon |
+   | `DATABASE_URL_UNPOOLED` | connection string *direct* dari Neon |
    | `SESSION_SECRET` | string acak minimal 32 karakter (jangan sama dengan yang lokal) |
 4. Klik **Deploy**. Setelah selesai, aplikasi bisa diakses di `https://<nama-project>.vercel.app`.
 
-> Alternatif: di Vercel buka **Storage → Create Database → Neon**. Vercel akan membuat database Neon dan mengisi `DATABASE_URL` secara otomatis. `DIRECT_URL` (versi tanpa `-pooler`) dan `SESSION_SECRET` tetap perlu ditambahkan sendiri.
+> Alternatif: di Vercel buka **Storage → Create Database → Neon**. Vercel akan membuat database Neon dan mengisi `DATABASE_URL` secara otomatis. Integrasi itu juga mengisi `DATABASE_URL_UNPOOLED`; `SESSION_SECRET` tetap perlu ditambahkan sendiri.
 
 ## Melihat data langsung di database
 
@@ -106,7 +106,7 @@ Ada tiga cara untuk membuktikan data user benar-benar tersimpan:
   SELECT id, name, email, password_hash, security_question, security_answer_hash, created_at FROM users ORDER BY created_at DESC;
   ```
 - **DBeaver / pgAdmin**: buat koneksi baru dengan tipe **PostgreSQL**:
-  - Host: bagian host dari `DIRECT_URL` (contoh `ep-xxxx.ap-southeast-1.aws.neon.tech`)
+  - Host: bagian host dari `DATABASE_URL_UNPOOLED` (contoh `ep-xxxx.ap-southeast-1.aws.neon.tech`)
   - Port: `5432`
   - Database: `neondb`
   - Username dan password: dari connection string
